@@ -39,7 +39,10 @@ mainloop:
 				curEdit.MoveCursorUp()
 
 			case termbox.KeyEnter:
-				curEdit.AddNewLine()
+				curEdit.BreakNewLine()
+
+			case termbox.KeyTab:
+				curEdit.InsertTabAtCurrentPos()
 
 			case termbox.KeyEsc:
 				curEdit.SaveToFile()
@@ -55,6 +58,10 @@ mainloop:
 			}
 		case termbox.EventInterrupt:
 			break mainloop
+
+		case termbox.EventResize:
+			curEdit.SetWindowSize()
+
 		case termbox.EventError:
 			panic(ev.Err)
 		}

@@ -11,6 +11,8 @@ import (
 type Editbox struct {
 	currentX    int
 	currentY    int
+	width       int
+	height      int
 	currentCell termbox.Cell
 	numLines    int
 	fileName    string
@@ -22,31 +24,67 @@ func (this *Editbox) Init() {
 	this.currentX = 0
 	this.currentY = 0
 	this.numLines = 1
+	this.width, this.height = termbox.Size()
 	this.fileName = "./testest.txt"
+
 }
 
 func (this *Editbox) GetText() [][]rune {
 	return this.text
 }
 
+func (this *Editbox) InsertTabAtCurrentPos() {
+	for i := 0; i < 4; i++ {
+		this.InsertCharAtCurrentPos(' ')
+	}
+}
+
 func (this *Editbox) MoveCursorUp() {
-	this.currentY--
+	if this.currentY-1 >= 0 {
+		this.currentY--
+		if this.currentX >= len(this.text[this.currentY]) {
+			this.currentX = len(this.text[this.currentY]) - 1
+		}
+	}
 	this.updateCursor()
 }
 
 func (this *Editbox) MoveCursorDown() {
-	this.currentY++
+	if this.currentY+1 < this.numLines {
+		this.currentY++
+		if this.currentX >= len(this.text[this.currentY]) {
+			this.currentX = len(this.text[this.currentY]) - 1
+		}
+	}
 	this.updateCursor()
 }
 
 func (this *Editbox) MoveCursorLeft() {
-	this.currentX--
+	if this.currentX-1 >= 0 {
+		this.currentX--
+	} else {
+		if this.currentY-1 >= 0 {
+			this.currentY--
+			this.currentX = len(this.text[this.currentY]) - 1
+		}
+	}
 	this.updateCursor()
 }
 
 func (this *Editbox) MoveCursorRight() {
-	this.currentX++
+	if this.currentX+1 < len(this.text[this.currentY]) {
+		this.currentX++
+	} else {
+		if this.currentY+1 < this.numLines {
+			this.currentY++
+			this.currentX = 0
+		}
+	}
 	this.updateCursor()
+}
+
+func (this *Editbox) SetWindowSize() {
+	this.width, this.height = termbox.Size()
 }
 
 func (this *Editbox) writeToFile(filename string, data string) error {
@@ -71,12 +109,23 @@ func (this *Editbox) SaveToFile() {
 	this.writeToFile(this.fileName, strBuffer)
 }
 
-func (this *Editbox) AddNewLine() {
-	this.AppendCharCurrentLine('\n')
-	this.text = append(this.text, []rune{})
+func (this *Editbox) BreakNewLine() {
+	this.InsertCharAtCurrentPos('\n')
 	this.numLines++
+
+	newLine := this.text[this.currentY][this.currentX:]
+	this.text[this.currentY] = this.text[this.currentY][this.currentX:]
+	this.text = append(this.text, []rune{})
+	this.currentY++
+
+	for i := this.numLines; i < this.currentY; i-- {
+		this.text[i] = this.text[i-1]
+	}
+
+	this.text[this.currentY] = newLine
+
 	this.currentX = 0
-	this.currentY = this.numLines - 1
+
 	this.updateCursor()
 	termbox.Flush()
 }
