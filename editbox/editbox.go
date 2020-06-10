@@ -9,28 +9,59 @@ import (
 )
 
 type Editbox struct {
-	currentX    int
-	currentY    int
-	width       int
-	height      int
-	currentCell termbox.Cell
-	numLines    int
-	fileName    string
-	text        [][]rune
+	currentX int
+	currentY int
+	width    int
+	height   int
+	lines    *EditLine
+	fileName string
+}
+
+func (this *Editbox) GetNumLines() int {
+	countLines := 0
+	iter := this.lines
+	for iter != nil {
+		countLines++
+		iter = iter.nextLine
+	}
+	return countLines
+}
+
+func (this *Editbox) GetCurrentLine() *EditLine {
+	return this.GetLineAt(this.currentY)
 }
 
 func (this *Editbox) Init() {
-	this.text = make([][]rune, 1)
+	this.lines = &EditLine{0, []rune{}, nil, nil}
 	this.currentX = 0
 	this.currentY = 0
-	this.numLines = 1
 	this.width, this.height = termbox.Size()
 	this.fileName = "./testest.txt"
 
 }
 
-func (this *Editbox) GetText() [][]rune {
-	return this.text
+func (this *Editbox) GetLenLine(index int) int {
+	iter := this.lines
+	for iter != nil {
+		if iter.idLine == index {
+			return len(iter.text)
+		}
+		iter = iter.nextLine
+	}
+
+	return -1
+}
+
+func (this *Editbox) GetLineAt(index int) *EditLine {
+	iter := this.lines
+	for iter != nil {
+		if iter.idLine == index {
+			return iter
+		}
+		iter = iter.nextLine
+	}
+
+	return nil
 }
 
 func (this *Editbox) InsertTabAtCurrentPos() {
@@ -42,21 +73,21 @@ func (this *Editbox) InsertTabAtCurrentPos() {
 func (this *Editbox) MoveCursorUp() {
 	if this.currentY-1 >= 0 {
 		this.currentY--
-		if this.currentX >= len(this.text[this.currentY]) {
-			this.currentX = len(this.text[this.currentY]) - 1
+		if this.currentX >= this.GetLenLine(this.currentY) {
+			this.currentX = this.GetLenLine(this.currentY) - 1
 		}
+		this.updateCursor()
 	}
-	this.updateCursor()
 }
 
 func (this *Editbox) MoveCursorDown() {
-	if this.currentY+1 < this.numLines {
+	if this.currentY+1 < this.GetNumLines() {
 		this.currentY++
-		if this.currentX >= len(this.text[this.currentY]) {
-			this.currentX = len(this.text[this.currentY]) - 1
+		if this.currentX >= this.GetLenLine(this.currentY) {
+			this.currentX = this.GetLenLine(this.currentY) - 1
 		}
+		this.updateCursor()
 	}
-	this.updateCursor()
 }
 
 func (this *Editbox) MoveCursorLeft() {
@@ -65,22 +96,24 @@ func (this *Editbox) MoveCursorLeft() {
 	} else {
 		if this.currentY-1 >= 0 {
 			this.currentY--
-			this.currentX = len(this.text[this.currentY]) - 1
+			this.currentX = this.GetLenLine(this.currentY) - 1
 		}
 	}
 	this.updateCursor()
 }
 
 func (this *Editbox) MoveCursorRight() {
-	if this.currentX+1 < len(this.text[this.currentY]) {
-		this.currentX++
-	} else {
-		if this.currentY+1 < this.numLines {
-			this.currentY++
-			this.currentX = 0
+	if this.GetLenLine(this.currentY) != 0 {
+		if this.currentX < this.GetLenLine(this.currentY) {
+			this.currentX++
+		} else {
+			if this.currentY+1 < this.GetNumLines() {
+				this.currentY++
+				this.currentX = 0
+			}
 		}
+		this.updateCursor()
 	}
-	this.updateCursor()
 }
 
 func (this *Editbox) SetWindowSize() {
@@ -103,31 +136,30 @@ func (this *Editbox) writeToFile(filename string, data string) error {
 
 func (this *Editbox) SaveToFile() {
 	strBuffer := ""
-	for _, line := range this.text {
-		strBuffer += string(line)
+	iter := this.lines
+	for iter != nil {
+		strBuffer += string(iter.text) + "\n"
+		iter = iter.nextLine
 	}
 	this.writeToFile(this.fileName, strBuffer)
 }
 
 func (this *Editbox) BreakNewLine() {
-	this.InsertCharAtCurrentPos('\n')
-	this.numLines++
+	currentLine := this.GetCurrentLine()
+	if currentLine != nil {
+		newLine := currentLine.SliceAt(this.currentX)
 
-	newLine := this.text[this.currentY][this.currentX:]
-	this.text[this.currentY] = this.text[this.currentY][this.currentX:]
-	this.text = append(this.text, []rune{})
-	this.currentY++
-
-	for i := this.numLines; i < this.currentY; i-- {
-		this.text[i] = this.text[i-1]
+		iter := newLine.nextLine
+		for iter != nil {
+			iter.idLine += 1
+			iter = iter.nextLine
+		}
+		this.currentY++
+		this.currentX = 0
+		this.updateCursor()
+		termbox.Flush()
 	}
 
-	this.text[this.currentY] = newLine
-
-	this.currentX = 0
-
-	this.updateCursor()
-	termbox.Flush()
 }
 
 func (this *Editbox) BlindCursor() {
@@ -147,26 +179,38 @@ func (this *Editbox) updateCursor() {
 }
 
 func (this *Editbox) InsertCharAtCurrentPos(char rune) {
-	this.text[this.currentY] = append(this.text[this.currentY], 0)
-	copy(this.text[this.currentY][this.currentX+1:], this.text[this.currentY][this.currentX:])
-	this.text[this.currentY][this.currentX] = char
-	this.currentX++
-	this.updateCursor()
-	termbox.Flush()
+	currentLine := this.GetLineAt(this.currentY)
+	if currentLine != nil {
+		currentLine.InsertAt(this.currentX, char)
+		this.currentX++
+		this.updateCursor()
+		termbox.Flush()
+	}
 }
 
-func (this *Editbox) AppendCharCurrentLine(char rune) {
-	this.text[this.currentY] = append(this.text[this.currentY], char)
-	this.currentX++
+func (this *Editbox) DeleteCharAtCurrentPos() {
+	currentLine := this.GetCurrentLine()
+	if currentLine != nil {
+		currentLine.DeleteCharAt(this.currentX)
+		if this.currentX == 0 {
+			if this.currentY != 0 {
+				this.currentX = currentLine.prevLine.GetLen()
+				this.currentY--
+			}
+		} else {
+			this.currentX--
+		}
+	}
 	this.updateCursor()
-	termbox.Flush()
 }
 
 func (this *Editbox) ShowAllText() {
-	for iLine, line := range this.text {
-		for i, char := range line {
-			termbox.SetCell(i, iLine, char, termbox.ColorDefault, termbox.ColorDefault)
+	iter := this.lines
+	for iter != nil {
+		for i, char := range iter.text {
+			termbox.SetCell(i, iter.idLine, char, termbox.ColorDefault, termbox.ColorDefault)
 		}
+		iter = iter.nextLine
 	}
 	termbox.Flush()
 }
