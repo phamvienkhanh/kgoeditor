@@ -191,17 +191,35 @@ func (this *Editbox) InsertCharAtCurrentPos(char rune) {
 func (this *Editbox) DeleteCharAtCurrentPos() {
 	currentLine := this.GetCurrentLine()
 	if currentLine != nil {
-		currentLine.DeleteCharAt(this.currentX)
+		var savePreLineLen = 0
+		if this.currentY != 0 {
+			savePreLineLen = currentLine.prevLine.GetLen()
+		}
+		currentLine.DeleteCharAt(this.currentX - 1)
 		if this.currentX == 0 {
 			if this.currentY != 0 {
-				this.currentX = currentLine.prevLine.GetLen()
+				this.currentX = savePreLineLen
 				this.currentY--
+				lastLine := this.GetLastLine()
+				if lastLine != nil {
+					for i := range lastLine.text {
+						termbox.SetCell(i, lastLine.idLine+1, 0, termbox.ColorDefault, termbox.ColorDefault)
+					}
+				}
 			}
 		} else {
 			this.currentX--
 		}
 	}
 	this.updateCursor()
+}
+
+func (this *Editbox) GetLastLine() *EditLine {
+	iter := this.lines
+	if iter != nil && iter.nextLine != nil {
+		iter = iter.nextLine
+	}
+	return iter
 }
 
 func (this *Editbox) ShowAllText() {

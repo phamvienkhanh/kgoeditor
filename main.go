@@ -44,11 +44,13 @@ mainloop:
 
 			case termbox.KeyTab:
 				curEdit.InsertTabAtCurrentPos()
+				curEdit.ShowAllText()
 
 			// case termbox.KeyDelete:
 			case termbox.KeyBackspace:
 			case termbox.KeyBackspace2:
 				curEdit.DeleteCharAtCurrentPos()
+				curEdit.ShowAllText()
 
 			case termbox.KeyEsc:
 				curEdit.SaveToFile()

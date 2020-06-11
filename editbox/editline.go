@@ -46,7 +46,7 @@ func (this *EditLine) DeleteLine() {
 
 func (this *EditLine) DeleteCharAt(index int) {
 	lenLine := this.GetLen()
-	if index == 0 {
+	if index < 0 {
 		preLine := this.prevLine
 		if preLine != nil {
 			preLine.text = append(preLine.text, this.text...)
@@ -54,6 +54,8 @@ func (this *EditLine) DeleteCharAt(index int) {
 		}
 	} else if index < lenLine {
 		copy(this.text[index:], this.text[index+1:])
+		this.text[lenLine-1] = 0
+		this.text = this.text[:lenLine-1]
 		termbox.SetCell(lenLine-1, this.idLine, 0, termbox.ColorDefault, termbox.ColorDefault)
 	} else {
 		this.text = this.text[:index-1]
