@@ -89,6 +89,9 @@ func (this *EditLine) SliceAt(index int) *EditLine {
 
 	newLine = &EditLine{this.idLine + 1, newText, this, this.nextLine}
 	this.nextLine = newLine
+	if newLine.nextLine != nil && newLine.nextLine.prevLine != nil {
+		newLine.nextLine.prevLine = newLine
+	}
 
 	return newLine
 }

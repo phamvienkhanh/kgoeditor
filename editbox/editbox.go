@@ -141,7 +141,7 @@ func (this *Editbox) BreakNewLine() {
 			this.currentY++
 		}
 		if this.currentLine.nextLine != nil {
-			this.currentLine = this.currentLine.nextLine
+			this.currentLine = newLine
 		}
 		this.currentX = 0
 		this.updateCursor()
@@ -225,10 +225,10 @@ func (this *Editbox) ShowAllText() {
 		}
 		yPos--
 	}
-	yPos = this.currentY + 1
+	yPos = this.currentY
 	iterLine = this.currentLine
 	for yPos < this.height {
-		if iterLine != nil && iterLine.nextLine != nil {
+		if iterLine != nil {
 			for i, char := range iterLine.text {
 				termbox.SetCell(i, yPos, char, termbox.ColorDefault, termbox.ColorDefault)
 			}
