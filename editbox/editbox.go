@@ -46,28 +46,31 @@ func (this *Editbox) InsertTabAtCurrentPos() {
 
 func (this *Editbox) MoveCursorUp() {
 	if this.currentY-1 >= 0 {
-		if this.currentLine.prevLine != nil {
-			this.currentLine = this.currentLine.prevLine
-		}
 		this.currentY--
-		if this.currentX >= this.currentLine.GetLen() {
-			this.currentX = this.currentLine.GetLen()
-		}
-		this.updateCursor()
 	}
+
+	if this.currentLine.prevLine != nil {
+		this.currentLine = this.currentLine.prevLine
+		this.ShowAllText()
+	}
+	if this.currentX >= this.currentLine.GetLen() {
+		this.currentX = this.currentLine.GetLen()
+	}
+	this.updateCursor()
 }
 
 func (this *Editbox) MoveCursorDown() {
-	if this.currentY+1 < this.GetNumLines() {
+	if this.currentY+1 < this.height && this.currentY+1 < this.GetNumLines() {
 		this.currentY++
-		if this.currentLine.nextLine != nil {
-			this.currentLine = this.currentLine.nextLine
-		}
-		if this.currentX >= this.currentLine.GetLen() {
-			this.currentX = this.currentLine.GetLen()
-		}
-		this.updateCursor()
 	}
+	if this.currentLine.nextLine != nil {
+		this.currentLine = this.currentLine.nextLine
+		this.ShowAllText()
+	}
+	if this.currentX >= this.currentLine.GetLen() {
+		this.currentX = this.currentLine.GetLen()
+	}
+	this.updateCursor()
 }
 
 func (this *Editbox) MoveCursorLeft() {
@@ -140,9 +143,7 @@ func (this *Editbox) BreakNewLine() {
 		if this.currentY+1 < this.height {
 			this.currentY++
 		}
-		if this.currentLine.nextLine != nil {
-			this.currentLine = newLine
-		}
+		this.currentLine = newLine
 		this.currentX = 0
 		this.updateCursor()
 		termbox.Flush()
@@ -218,7 +219,10 @@ func (this *Editbox) ShowAllText() {
 	iterLine := this.currentLine
 	for yPos >= 0 {
 		if iterLine != nil {
+			// termbox.SetCell(0, yPos, rune(48+iterLine.idLine), termbox.ColorDefault, termbox.ColorDefault)
+			// termbox.SetCell(1, yPos, ' ', termbox.ColorDefault, termbox.ColorDefault)
 			for i, char := range iterLine.text {
+
 				termbox.SetCell(i, yPos, char, termbox.ColorDefault, termbox.ColorDefault)
 			}
 			iterLine = iterLine.prevLine
