@@ -12,9 +12,6 @@ func main() {
 		panic(err)
 	}
 	defer termbox.Close()
-	termbox.SetInputMode(termbox.InputAlt | termbox.InputMouse | termbox.InputEsc)
-	termbox.SetCursor(0, 0)
-	termbox.Flush()
 
 	curEdit := editbox.Editbox{}
 	curEdit.Init()
