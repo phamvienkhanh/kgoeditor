@@ -1,6 +1,10 @@
 package editbox
 
-import "github.com/nsf/termbox-go"
+import (
+	"strconv"
+
+	"github.com/nsf/termbox-go"
+)
 
 type EditLine struct {
 	idLine   int
@@ -11,6 +15,11 @@ type EditLine struct {
 
 func (this *EditLine) GetLen() int {
 	return len(this.text)
+}
+
+func (this *EditLine) GetLineId() []rune {
+	strId := strconv.FormatInt(int64(this.idLine), 10)
+	return []rune(strId)
 }
 
 func (this *EditLine) InsertAt(index int, char rune) {
@@ -36,7 +45,7 @@ func (this *EditLine) DeleteLine() {
 		nexLine.prevLine = preLine
 
 		// reset index
-		if nexLine != nil {
+		for nexLine != nil {
 			nexLine.idLine--
 			nexLine = nexLine.nextLine
 		}

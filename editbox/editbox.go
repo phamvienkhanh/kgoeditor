@@ -66,7 +66,7 @@ func (this *Editbox) MoveCursorUp() {
 }
 
 func (this *Editbox) MoveCursorDown() {
-	if this.currentY+1 < this.height && this.currentY+1 < this.GetNumLines() {
+	if this.currentY+1 <= this.height && this.currentLine.nextLine != nil {
 		this.currentY++
 	}
 	if this.currentLine.nextLine != nil {
@@ -189,13 +189,13 @@ func (this *Editbox) InsertCharAtCurrentPos(char rune) {
 func (this *Editbox) DeleteCharAtCurrentPos() {
 	if this.currentLine != nil {
 		var savePreLineLen = 0
-		if this.currentY != 0 {
+		if this.currentY != this.offsetTop {
 			savePreLineLen = this.currentLine.prevLine.GetLen()
 		}
 		this.currentLine.DeleteCharAt(this.currentX - 1 - this.offsetLeft)
-		if this.currentX == 0 {
-			if this.currentY != 0 {
-				this.currentX = savePreLineLen
+		if this.currentX <= this.offsetLeft {
+			if this.currentY != this.offsetTop {
+				this.currentX = savePreLineLen + this.offsetLeft
 				if this.currentY-1-this.offsetTop >= 0 {
 					this.currentY--
 				}
@@ -224,18 +224,50 @@ func (this *Editbox) GetLastLine() *EditLine {
 	return iter
 }
 
+func countNums(num int) int {
+	count := 1
+
+	for num >= 10 {
+		num /= 10
+		count++
+	}
+
+	return count
+}
+
+func (this *Editbox) ShowNumLine(yPos int, line *EditLine) {
+	lineId := line.GetLineId()
+	lenLineId := len(lineId)
+
+	newOffset := countNums(this.GetNumLines()) + 3
+
+	// print space before num line
+	numSpace := newOffset - lenLineId - 2
+
+	// print num line
+	for i, num := range lineId {
+		termbox.SetCell(i+numSpace, yPos, num, termbox.ColorYellow, termbox.ColorDefault)
+	}
+
+	termbox.SetCell(lenLineId+numSpace, yPos, 9475, termbox.ColorMagenta, termbox.ColorBlack)
+	termbox.SetCell(lenLineId+numSpace+1, yPos, ' ', termbox.ColorDefault, termbox.ColorDefault)
+
+	if this.offsetLeft != newOffset {
+		this.currentX += newOffset - this.offsetLeft
+	}
+
+	this.offsetLeft = newOffset
+}
+
 func (this *Editbox) ShowAllText() {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	termbox.Flush()
 	yPos := this.currentY
 	iterLine := this.currentLine
-	for yPos >= 0 {
+	for yPos >= this.offsetTop {
 		if iterLine != nil {
-			termbox.SetCell(0, yPos, rune(48+iterLine.idLine), termbox.ColorYellow, termbox.ColorDefault)
-			termbox.SetCell(1, yPos, 9475, termbox.ColorMagenta, termbox.ColorBlack)
-			termbox.SetCell(2, yPos, ' ', termbox.ColorDefault, termbox.ColorDefault)
+			this.ShowNumLine(yPos, iterLine)
 			for i, char := range iterLine.text {
-
 				termbox.SetCell(i+this.offsetLeft, yPos, char, termbox.ColorDefault, termbox.ColorDefault)
 			}
 			iterLine = iterLine.prevLine
@@ -246,9 +278,7 @@ func (this *Editbox) ShowAllText() {
 	iterLine = this.currentLine
 	for yPos < this.height {
 		if iterLine != nil {
-			termbox.SetCell(0, yPos, rune(48+iterLine.idLine), termbox.ColorYellow, termbox.ColorDefault)
-			termbox.SetCell(1, yPos, 9475, termbox.ColorMagenta, termbox.ColorBlack)
-			termbox.SetCell(2, yPos, ' ', termbox.ColorDefault, termbox.ColorDefault)
+			this.ShowNumLine(yPos, iterLine)
 			for i, char := range iterLine.text {
 				termbox.SetCell(i+this.offsetLeft, yPos, char, termbox.ColorDefault, termbox.ColorDefault)
 			}
